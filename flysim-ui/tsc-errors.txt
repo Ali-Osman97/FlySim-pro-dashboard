@@ -1,0 +1,4 @@
+components/dashboard/simulation/simulation-workspace.tsx(65,41): error TS2339: Property 'errors' does not exist on type 'ZodError<unknown>'.
+components/tests/StatsCards.test.tsx(1,24): error TS2307: Cannot find module '@testing-library/react' or its corresponding type declarations.
+components/tests/StatsCards.test.tsx(21,40): error TS2339: Property 'toBeInTheDocument' does not exist on type 'JestMatchers<any>'.
+tests/useSimData.test.ts(1,37): error TS2307: Cannot find module '@testing-library/react' or its corresponding type declarations.
