@@ -7,7 +7,7 @@ export function StatusBar() {
     <div className="border-t border-zinc-800/60 bg-[#0B0C10]/90 backdrop-blur-sm px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-zinc-550 select-none md:px-6">
       <div className="mx-auto flex max-w-[1400px] items-center justify-between gap-3">
         <span className="text-zinc-500 font-semibold">
-          FlySim Pro · Engineering Flight Simulator Assessment Dashboard
+          FlySim Pro · Engineering & Project Management Dashboard
         </span>
         
         {error ? (

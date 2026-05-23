@@ -44,7 +44,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         <div className="mx-auto flex max-w-[1400px] items-center justify-between">
           <div>
             <div className="text-sm font-semibold text-gray-100">FlySim</div>
-            <div className="text-xs text-gray-400">Engineering Flight Simulator Dashboard</div>
+            <div className="text-xs text-gray-400">Engineering & Project Management Dashboard</div>
           </div>
         </div>
       </header>
