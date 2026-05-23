@@ -11,6 +11,7 @@ import { ActivityFeed } from "@/components/dashboard/activity-feed"
 import { QuickActions } from "@/components/dashboard/quick-actions"
 import { StatusBar } from "@/components/dashboard/status-bar"
 import { SimulationWorkspace } from "@/components/dashboard/simulation/simulation-workspace"
+import { SkillsAssessment } from "@/components/dashboard/skills-assessment"
 
 function OverviewContent() {
   return (
@@ -86,10 +87,9 @@ export default function DashboardPage() {
         {activeView === "overview" && <OverviewContent />}
         {activeView === "simulation" && <SimulationWorkspace />}
         {activeView === "skills" && (
-          <PlaceholderView
-            title="Skills Assessment"
-            description="Detailed competency analysis and certification tracking"
-          />
+          <div className="mx-auto max-w-[1400px] px-4 py-6 md:px-6">
+            <SkillsAssessment />
+          </div>
         )}
         {activeView === "reports" && (
           <PlaceholderView
