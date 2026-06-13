@@ -1,7 +1,8 @@
-import os
+from datetime import datetime
+from typing import List, Literal
 from dotenv import load_dotenv
 from fastapi import FastAPI
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from fastapi.middleware.cors import CORSMiddleware
 from crewai import Agent, Task, Crew, Process
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -14,14 +15,123 @@ llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash")
 # 3. Initialize the Web App
 app = FastAPI(title="Engineering Flight Simulator API")
 
+# Strictly configure CORS to allow requests from the Next.js frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], 
-    allow_credentials=False,
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+class StrictModel(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+
+# --- Pydantic Models for Skills ---
+class RadarItem(StrictModel):
+    subject: str = Field(min_length=1)
+    Actual: int = Field(ge=0, le=100)
+    Benchmark: int = Field(ge=0, le=100)
+
+class SubSkillItem(StrictModel):
+    name: str = Field(min_length=1)
+    score: int = Field(ge=0, le=100)
+    benchmark: int = Field(ge=0, le=100)
+    trend: Literal["up", "stable", "down"]
+
+class ColorTheme(StrictModel):
+    text: Literal["text-indigo-400", "text-cyan-400", "text-slate-400"]
+    bg: Literal["bg-indigo-500/10", "bg-cyan-500/10", "bg-slate-500/10"]
+    border: Literal["border-indigo-500/20", "border-cyan-500/20", "border-slate-500/20"]
+    accent: Literal["bg-indigo-500", "bg-cyan-500", "bg-slate-400"]
+    fill: str = Field(pattern=r"^#[0-9a-fA-F]{6}$")
+
+class SkillCategoryItem(StrictModel):
+    id: str = Field(min_length=1)
+    title: str = Field(min_length=1)
+    description: str = Field(min_length=1)
+    colorTheme: ColorTheme
+    subSkills: List[SubSkillItem] = Field(min_length=1)
+
+# --- Pydantic Models for Reports ---
+class VelocityItem(StrictModel):
+    month: Literal["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+    Velocity: int = Field(ge=0, le=100)
+    Completed: int = Field(ge=0, le=100)
+    Target: int = Field(ge=0, le=100)
+
+class EfficiencyItem(StrictModel):
+    module: str = Field(min_length=1)
+    Efficiency: int = Field(ge=0, le=100)
+    DeliveryDays: int = Field(ge=0)
+
+class CrewAIInsightItem(StrictModel):
+    id: str = Field(min_length=1)
+    category: str = Field(min_length=1)
+    title: str = Field(min_length=1)
+    description: str = Field(min_length=1)
+    impact: Literal["High", "Medium", "Low"]
+    colorClass: Literal["border-cyan-500", "border-indigo-600", "border-rose-400"]
+
+class SkillsResponse(StrictModel):
+    radarData: List[RadarItem] = Field(min_length=1)
+    skillCategories: List[SkillCategoryItem] = Field(min_length=1)
+    crewAIInsights: List[CrewAIInsightItem]
+
+class ReportItemModel(StrictModel):
+    id: str = Field(pattern=r"^REP-\d{2}-\d{2}$")
+    title: str = Field(min_length=1)
+    discipline: Literal[
+        "Mechatronics & Robotics",
+        "Systems Architecture",
+        "Project Management",
+        "Software Development",
+        "Risk Mitigation"
+    ]
+    risk: Literal["Low", "Medium", "High"]
+    date: str
+
+    @field_validator("date")
+    @classmethod
+    def validate_report_date(cls, value: str) -> str:
+        datetime.strptime(value, "%b %d, %Y")
+        return value
+
+class ReportsResponse(StrictModel):
+    velocityData: List[VelocityItem] = Field(min_length=1)
+    efficiencyData: List[EfficiencyItem] = Field(min_length=1)
+    crewAIInsights: List[CrewAIInsightItem]
+    reportsList: List[ReportItemModel]
+
+DASHBOARD_INSIGHTS = [
+    {
+        "id": "insight-1",
+        "category": "SYSTEMS & MECHATRONICS",
+        "title": "Kalman Filter HIL Actuation Calibration",
+        "description": "CrewAI analysis detected a 15% latency reduction in actuator feedback loops during hardware-in-the-loop tests. Expand configuration adjustments to secondary roll dynamics.",
+        "impact": "High",
+        "colorClass": "border-cyan-500"
+    },
+    {
+        "id": "insight-2",
+        "category": "PROJECT MANAGEMENT & AGILITY",
+        "title": "Agile Resource Bottleneck Correction",
+        "description": "Sub-skill logs indicate high task queue load. Reallocating 2 FTEs from administrative logs to software dev modules can raise sprint velocity by an estimated 8%.",
+        "impact": "Medium",
+        "colorClass": "border-indigo-600"
+    },
+    {
+        "id": "insight-3",
+        "category": "RISK MITIGATION & ARCHITECTURE",
+        "title": "Real-time Execution Pipeline Thresholds",
+        "description": "High CPU cycles logged in control loops. Recommend immediate compiler optimizations (-O3 flag enablement) and thread priority assignment for RTOS tasks.",
+        "impact": "High",
+        "colorClass": "border-rose-400"
+    }
+]
+
+# --- Existing Endpoints ---
 @app.get("/api/sim-data")
 def get_sim_data():
     return {
@@ -91,6 +201,102 @@ def get_activity():
                 "timestamp": "2 days ago",
                 "description": "Scenario Scheduled: TCAS RA Response drill scheduled for March 2."
             }
+        ]
+    }
+
+# --- New Dashboard Skills Endpoints ---
+@app.get("/api/dashboard/skills", response_model=SkillsResponse)
+def get_dashboard_skills():
+    return {
+        "radarData": [
+            { "subject": "Project Management", "Actual": 85, "Benchmark": 75 },
+            { "subject": "Systems Architecture", "Actual": 72, "Benchmark": 80 },
+            { "subject": "Mechatronics & Robotics", "Actual": 90, "Benchmark": 85 },
+            { "subject": "Software Dev", "Actual": 88, "Benchmark": 70 },
+            { "subject": "Risk Mitigation", "Actual": 65, "Benchmark": 75 }
+        ],
+        "skillCategories": [
+            {
+                "id": "pm-agility",
+                "title": "Project Management & Agility",
+                "description": "Scope, scheduling, and sprint mechanics for complex engineering cycles.",
+                "colorTheme": {
+                    "text": "text-indigo-400",
+                    "bg": "bg-indigo-500/10",
+                    "border": "border-indigo-500/20",
+                    "accent": "bg-indigo-500",
+                    "fill": "#6366f1"
+                },
+                "subSkills": [
+                    { "name": "Agile Sprint Planning", "score": 88, "benchmark": 75, "trend": "up" },
+                    { "name": "Resource Allocation", "score": 82, "benchmark": 78, "trend": "stable" },
+                    { "name": "Scope Management", "score": 85, "benchmark": 72, "trend": "up" }
+                ]
+            },
+            {
+                "id": "mechatronics",
+                "title": "Systems & Mechatronics Engineering",
+                "description": "Multidisciplinary hardware-software loops, dynamics, and automation controls.",
+                "colorTheme": {
+                    "text": "text-cyan-400",
+                    "bg": "bg-cyan-500/10",
+                    "border": "border-cyan-500/20",
+                    "accent": "bg-cyan-500",
+                    "fill": "#06b6d4"
+                },
+                "subSkills": [
+                    { "name": "Hardware-Software Integration", "score": 78, "benchmark": 80, "trend": "stable" },
+                    { "name": "Control Systems & Robotics", "score": 92, "benchmark": 85, "trend": "up" },
+                    { "name": "Embedded Systems", "score": 85, "benchmark": 76, "trend": "up" }
+                ]
+            },
+            {
+                "id": "tech-execution",
+                "title": "Technical Execution & Tech Stack",
+                "description": "Modern full-stack services, system scale, and continuous deployment workflows.",
+                "colorTheme": {
+                    "text": "text-slate-400",
+                    "bg": "bg-slate-500/10",
+                    "border": "border-slate-500/20",
+                    "accent": "bg-slate-400",
+                    "fill": "#94a3b8"
+                },
+                "subSkills": [
+                    { "name": "Full-Stack Dev", "score": 90, "benchmark": 70, "trend": "up" },
+                    { "name": "API Architecture", "score": 85, "benchmark": 75, "trend": "stable" },
+                    { "name": "Automation/DevOps", "score": 80, "benchmark": 65, "trend": "up" }
+                ]
+            }
+        ],
+        "crewAIInsights": DASHBOARD_INSIGHTS
+    }
+
+# --- New Dashboard Reports Endpoints ---
+@app.get("/api/dashboard/reports", response_model=ReportsResponse)
+def get_dashboard_reports():
+    return {
+        "velocityData": [
+            { "month": "Jan", "Velocity": 82, "Completed": 78, "Target": 80 },
+            { "month": "Feb", "Velocity": 85, "Completed": 84, "Target": 82 },
+            { "month": "Mar", "Velocity": 89, "Completed": 88, "Target": 85 },
+            { "month": "Apr", "Velocity": 92, "Completed": 90, "Target": 88 },
+            { "month": "May", "Velocity": 94, "Completed": 95, "Target": 90 },
+            { "month": "Jun", "Velocity": 98, "Completed": 96, "Target": 95 }
+        ],
+        "efficiencyData": [
+            { "module": "Actuation", "Efficiency": 92, "DeliveryDays": 14 },
+            { "module": "Power Systems", "Efficiency": 85, "DeliveryDays": 18 },
+            { "module": "Agile Sprints", "Efficiency": 88, "DeliveryDays": 12 },
+            { "module": "Embedded OS", "Efficiency": 95, "DeliveryDays": 10 },
+            { "module": "Control Loops", "Efficiency": 78, "DeliveryDays": 22 }
+        ],
+        "crewAIInsights": DASHBOARD_INSIGHTS,
+        "reportsList": [
+            { "id": "REP-26-05", "title": "Q2 Mechatronics Sprint Diagnostic", "discipline": "Mechatronics & Robotics", "risk": "Low", "date": "May 18, 2026" },
+            { "id": "REP-26-04", "title": "HIL Integration Latency Audit", "discipline": "Systems Architecture", "risk": "Medium", "date": "Apr 22, 2026" },
+            { "id": "REP-26-03", "title": "Agile Resource Re-allocation Review", "discipline": "Project Management", "risk": "High", "date": "Mar 15, 2026" },
+            { "id": "REP-26-02", "title": "API Microservices Scalability Stress-Test", "discipline": "Software Development", "risk": "Low", "date": "Feb 28, 2026" },
+            { "id": "REP-26-01", "title": "System Security & RTOS Risk Vectoring", "discipline": "Risk Mitigation", "risk": "Medium", "date": "Jan 10, 2026" }
         ]
     }
 

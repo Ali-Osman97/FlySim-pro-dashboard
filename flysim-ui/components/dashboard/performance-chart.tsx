@@ -41,8 +41,14 @@ export function PerformanceChart() {
         {error ? <span className="text-xs text-amber-500">{error}</span> : null}
       </div>
       
-      <div className="h-[230px] w-full">
-        <ResponsiveContainer width="100%" height="100%">
+      <div className="h-[230px] min-w-0 w-full">
+        <ResponsiveContainer
+          width="100%"
+          height="100%"
+          minWidth={0}
+          minHeight={0}
+          initialDimension={{ width: 600, height: 230 }}
+        >
           <LineChart data={data.performance} margin={{ top: 10, right: 10, bottom: 0, left: -20 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#27272a" opacity={0.3} />
             <XAxis
@@ -95,5 +101,3 @@ export function PerformanceChart() {
     </div>
   )
 }
-
-

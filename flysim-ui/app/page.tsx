@@ -12,6 +12,7 @@ import { QuickActions } from "@/components/dashboard/quick-actions"
 import { StatusBar } from "@/components/dashboard/status-bar"
 import { SimulationWorkspace } from "@/components/dashboard/simulation/simulation-workspace"
 import { SkillsAssessment } from "@/components/dashboard/skills-assessment"
+import { ReportsAnalytics } from "@/components/dashboard/reports-analytics"
 
 function OverviewContent() {
   return (
@@ -62,20 +63,6 @@ function OverviewContent() {
   )
 }
 
-function PlaceholderView({ title, description }: { title: string; description: string }) {
-  return (
-    <div className="mx-auto max-w-[1400px] px-4 py-6 md:px-6">
-      <div className="mb-6">
-        <h2 className="text-lg font-semibold text-foreground">{title}</h2>
-        <p className="text-sm text-muted-foreground">{description}</p>
-      </div>
-      <div className="flex h-[400px] items-center justify-center rounded-lg border border-dashed border-border">
-        <p className="text-sm text-muted-foreground">Coming soon</p>
-      </div>
-    </div>
-  )
-}
-
 export default function DashboardPage() {
   const [activeView, setActiveView] = useState<DashboardView>("overview")
 
@@ -92,10 +79,9 @@ export default function DashboardPage() {
           </div>
         )}
         {activeView === "reports" && (
-          <PlaceholderView
-            title="Reports & Analytics"
-            description="Comprehensive performance reports and data exports"
-          />
+          <div className="mx-auto max-w-[1400px] px-4 py-6 md:px-6">
+            <ReportsAnalytics />
+          </div>
         )}
       </main>
 

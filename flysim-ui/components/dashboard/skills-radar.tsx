@@ -39,8 +39,14 @@ export function SkillsRadar() {
         {error ? <span className="text-xs text-amber-500">{error}</span> : null}
       </div>
       
-      <div className="h-[230px] w-full flex items-center justify-center">
-        <ResponsiveContainer width="100%" height="100%">
+      <div className="h-[230px] min-w-0 w-full flex items-center justify-center">
+        <ResponsiveContainer
+          width="100%"
+          height="100%"
+          minWidth={0}
+          minHeight={0}
+          initialDimension={{ width: 400, height: 230 }}
+        >
           <RadarChart data={data.skills} outerRadius="75%" margin={{ top: 10, right: 10, bottom: 10, left: 10 }}>
             <PolarGrid stroke="#27272a" opacity={0.4} />
             <PolarAngleAxis dataKey="name" tick={{ fill: "#a1a1aa", fontSize: 9, fontWeight: "bold" }} />
@@ -73,5 +79,3 @@ export function SkillsRadar() {
     </div>
   )
 }
-
-

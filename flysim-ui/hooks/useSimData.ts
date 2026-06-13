@@ -1,7 +1,5 @@
 import { useEffect, useState } from "react"
-// السطر ده هيستورد كل البيانات اللي في ملف الداتا بتاعك
-import * as mockExports from "@/lib/data"
-import type { SimData } from "@/lib/data"
+import { mockData, type SimData } from "@/lib/data"
 
 type UseSimDataState = {
   data: SimData | null
@@ -23,36 +21,20 @@ export function useSimData(): UseSimDataState {
         if (!res.ok) {
           throw new Error(`Request failed with status ${res.status}`)
         }
-        const json = await res.json()
+
+        const json = (await res.json()) as SimData
         if (!cancelled) {
-          setData(json as SimData)
+          setData(json)
           setError(null)
           setIsLoading(false)
         }
-      } catch (e) {
-        console.warn("Failed to fetch sim data from backend, falling back to local mock data:", e)
-        
-        // Fallback to local data
-        try {
-          const mockData = 
-            (mockExports as any).simData || 
-            (mockExports as any).data || 
-            (mockExports as any).mockData || 
-            Object.values(mockExports)[0];
+      } catch (error: unknown) {
+        console.warn("Failed to fetch sim data from backend, falling back to local mock data:", error)
 
-          if (mockData && !cancelled) {
-            setData(mockData as SimData)
-            setError(null)
-            setIsLoading(false)
-          } else if (!cancelled) {
-            throw new Error("No data found in lib/data")
-          }
-        } catch (localError) {
-          if (!cancelled) {
-            console.error("Local data load failed:", localError)
-            setError("Error loading local data")
-            setIsLoading(false)
-          }
+        if (!cancelled) {
+          setData(mockData)
+          setError(null)
+          setIsLoading(false)
         }
       }
     }
