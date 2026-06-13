@@ -45,6 +45,9 @@ Thumbs.db
 # Project-specific temp/zip files
 b_RZ9VIcpGsBd-1772161281828/
 b_RZ9VIcpGsBd-1772161281828.zip
+data/*.db
+data/*.db-shm
+data/*.db-wal
 
 # Editor / IDE configuration
 .vscode/

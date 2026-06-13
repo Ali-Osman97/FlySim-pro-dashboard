@@ -1,17 +1,27 @@
 from datetime import datetime
 from typing import List, Literal
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from fastapi.middleware.cors import CORSMiddleware
 from crewai import Agent, Task, Crew, Process
 from langchain_google_genai import ChatGoogleGenerativeAI
+from training_engine import (
+    EvaluationReport,
+    SourceCase,
+    SourceCaseCreate,
+    SourceCollectionResult,
+    SubmissionCreate,
+    TrainingEngine,
+    TrainingTask,
+)
 
 # 1. Load the hidden variables from your .env file
 load_dotenv()
 
 # 2. Initialize the Gemini Brain (Using the correct Flash model!)
 llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash")
+training_engine = TrainingEngine(llm=llm)
 # 3. Initialize the Web App
 app = FastAPI(title="Engineering Flight Simulator API")
 
@@ -204,6 +214,47 @@ def get_activity():
         ]
     }
 
+
+# --- Structured Training Task Engine ---
+@app.get("/api/training/sources", response_model=List[SourceCase])
+def list_training_sources():
+    return training_engine.list_sources()
+
+
+@app.post("/api/training/sources", response_model=SourceCollectionResult, status_code=201)
+def collect_training_source(source: SourceCaseCreate):
+    return training_engine.collect_source(source)
+
+
+@app.get("/api/training/tasks", response_model=List[TrainingTask])
+def list_training_tasks():
+    return training_engine.list_tasks()
+
+
+@app.get("/api/training/tasks/{task_id}", response_model=TrainingTask)
+def get_training_task(task_id: str):
+    task = training_engine.get_task(task_id)
+    if task is None:
+        raise HTTPException(status_code=404, detail="Training task not found")
+    return task
+
+
+@app.post(
+    "/api/training/tasks/{task_id}/submissions",
+    response_model=EvaluationReport,
+    status_code=201,
+)
+def evaluate_training_submission(task_id: str, submission: SubmissionCreate):
+    task = training_engine.get_task(task_id)
+    if task is None:
+        raise HTTPException(status_code=404, detail="Training task not found")
+    return training_engine.evaluate(task, submission)
+
+
+@app.get("/api/training/reports", response_model=List[EvaluationReport])
+def list_training_reports():
+    return training_engine.list_reports()
+
 # --- New Dashboard Skills Endpoints ---
 @app.get("/api/dashboard/skills", response_model=SkillsResponse)
 def get_dashboard_skills():
@@ -360,5 +411,4 @@ def process_handoff(submission: HandOffSubmission):
         }
     except Exception as e:
         print(f"--> Error during crew execution: {str(e)}")
-        from fastapi import HTTPException
         raise HTTPException(status_code=500, detail=f"Failed to process handoff workflow: {str(e)}")
